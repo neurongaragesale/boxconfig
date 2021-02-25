@@ -33,8 +33,36 @@ function Set-MachineConfig {
             Write-Error "Unknown config"
         }
     }
-    
+}
+
+function Install-NgsBootstrapper (){
+    [CmdletBinding()]
+    Param
+    (
+        [Parameter(Mandatory=$false)]
+        [string]$Hostname = (Read-Host "Enter desired Hostname: "),
+
+        [Parameter(Mandatory=$false)]
+        [string]$DomainToJoin
+
+    )
+    Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+	CINST Boxstarter -y
+    CINST GIT -y
+
+    Write-Warning "Remember kids, if you are planing on running containers nested in Hyper-V, Shutdown this box after the reboot and run set-VMforhyper-v.ps1, or you are gonna have a bad time "
+
+    if([string]::IsNullOrEmpty($DomainToJoin)){
+        if ($env:computername -ne $Hostname) {
+            Rename-Computer -NewName $Hostname
+            Write-Host "Press Any key to reboot your machine" -ForegroundColor Green
+        }
+    }
+    else{
+        $username = Read-Host "Domain UserName: "
+        add-computer -ComputerName $Hostname -DomainName $DomainToJoin -Credential $username -Restart -Force
+    }
 }
 
 
-Export-ModuleMember Get-AvailablePackages, Set-MachineConfig
+Export-ModuleMember Get-AvailablePackages, Set-MachineConfig, Install-NgsBootstrapper
